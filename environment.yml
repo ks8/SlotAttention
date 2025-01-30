@@ -1,0 +1,13 @@
+name: SlotAttention
+
+channels: 
+  - pytorch
+
+dependencies:
+  - python=3.11
+  - pytorch=2.5.1
+  - torchvision=0.20.1
+  - pip=24.2
+  - pip:
+    - lightning==2.5.0.post0
+    - h5py==3.12.1
