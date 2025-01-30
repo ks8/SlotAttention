@@ -175,11 +175,11 @@ class SlotAttention(nn.Module):
         self.num_slots = num_slots
         self.iters = iters
         self.epsilon = epsilon
-        self.scale = hidden_size ** -0.5
-        self.slot_size = hidden_size
+        self.scale = slot_size ** -0.5
+        self.slot_size = slot_size
 
-        self.slots_mu = nn.Parameter(torch.randn(1, 1, hidden_size))
-        self.slots_log_sigma = nn.Parameter(torch.randn(1, 1, hidden_size))
+        self.slots_mu = nn.Parameter(torch.randn(1, 1, slot_size))
+        self.slots_log_sigma = nn.Parameter(torch.randn(1, 1, slot_size))
 
         self.project_q = nn.Linear(slot_size, slot_size)
         self.project_k = nn.Linear(in_dim, slot_size)
@@ -216,7 +216,7 @@ class SlotAttention(nn.Module):
 
             attn = torch.einsum('bid,bjd->bij', q, k) * self.scale
             attn = attn.softmax(dim=1) + self.epsilon
-            attn = attn / attn.sum(dim=1, keepdim=True)
+            attn = attn / attn.sum(dim=-1, keepdim=True)
 
             updates = torch.einsum('bjd,bij->bid', v, attn)
 
@@ -258,10 +258,10 @@ class Encoder(nn.Module):
 class Decoder(nn.Module):
     def __init__(self, hidden_size: int, slot_size: int):
         super().__init__()
-        self.conv1 = nn.ConvTranspose2d(slot_size, hidden_size, kernel_size=5, stride=(1, 1), padding=2)
-        self.conv2 = nn.ConvTranspose2d(hidden_size, hidden_size, kernel_size=5, stride=(1, 1), padding=2)
-        self.conv3 = nn.ConvTranspose2d(hidden_size, hidden_size, kernel_size=5, stride=(1, 1), padding=2)
-        self.conv4 = nn.ConvTranspose2d(hidden_size, 4, kernel_size=3, stride=(1, 1), padding=1)
+        self.conv1 = nn.ConvTranspose2d(slot_size, hidden_size, 5, stride=(1, 1), padding=2)
+        self.conv2 = nn.ConvTranspose2d(hidden_size, hidden_size, 5, stride=(1, 1), padding=2)
+        self.conv3 = nn.ConvTranspose2d(hidden_size, hidden_size, 5, stride=(1, 1), padding=2)
+        self.conv4 = nn.ConvTranspose2d(hidden_size, 4, 3, stride=(1, 1), padding=1)
         self.decoder_pos = PositionEmbed(slot_size)
 
     def forward(self, x, grid):
@@ -379,7 +379,7 @@ class LitSlotAttention(L.LightningModule):
     def forward(self, batch):
         _ = self.model(batch, self.grid)
 
-    def training_step(self, batch, batch_idx):
+    def training_step(self, batch):
         recon_combined, recon, masks, slots = self.model(batch, self.grid)
         loss = self.loss(recon_combined, batch)
         self.log("train_loss", loss, on_epoch=True, sync_dist=True)
@@ -388,7 +388,7 @@ class LitSlotAttention(L.LightningModule):
     def validation_step(self, batch, batch_idx):
         recon_combined, recon, masks, slots = self.model(batch, self.grid)
         loss = self.loss(recon_combined, batch)
-        self.log(name="test_loss", value=loss, on_epoch=True, sync_dist=True)
+        self.log("test_loss", loss, on_epoch=True, sync_dist=True)
 
         if batch_idx == 0:
             batch, recon_combined, recon, masks = batch[:4], recon_combined[:4], recon[:4], masks[:4]
@@ -508,7 +508,7 @@ if __name__ == "__main__":
     parser.add_argument("--batch_size", type=int, default=64)
     parser.add_argument("--learning_rate", type=float, default=4e-4)
     parser.add_argument("--max_epochs", type=int, default=100)
-    parser.add_argument("--num_workers", type=int, default=8)
+    parser.add_argument("--num_workers", type=int, default=63)
     parser.add_argument("--data_h5_path", type=str, default="tetrominoes.h5")
     parser.add_argument("--resolution", type=tuple, default=(35, 35))
     parser.add_argument("--num_slots", type=int, default=4)
