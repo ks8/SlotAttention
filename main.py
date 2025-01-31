@@ -19,6 +19,13 @@ import h5py
 import torchvision.transforms as transforms
 from torch.utils.data import Dataset
 
+SEED = 1234
+torch.manual_seed(SEED)
+torch.cuda.manual_seed(SEED)
+torch.cuda.manual_seed_all(SEED)
+torch.backends.cudnn.deterministic = True
+torch.backends.cudnn.benchmark = False
+
 
 class TetrominoesDataModule(L.LightningDataModule):
     def __init__(self, data_h5_path: str, max_objects: int, batch_size: int, num_workers: int):
@@ -129,14 +136,14 @@ class TetrominoesDataset(Dataset):
     ):
         super(TetrominoesDataset, self).__init__()
         self.h5_path = str(data_h5_path)
-        self.data = h5py.File(self.h5_path, mode="r")
+        self.data = h5py.File(self.h5_path, mode='r')
         self.num_objects_in_scene = np.sum(
             self.data["visibility"][start_index:end_index], axis=1
         )
         self.num_objects_in_scene -= 1
-        self.indices = np.argwhere(
+        self.indices = (np.argwhere(
             self.num_objects_in_scene <= max_objects
-        ).flatten() + start_index
+        ).flatten() + start_index)
         self.transform = transform
 
     def __len__(self):
@@ -144,7 +151,7 @@ class TetrominoesDataset(Dataset):
 
     def __getitem__(self, i):
         index_to_load = self.indices[i]
-        return self.transform(np.uint8(self.data["image"][index_to_load].astype("float32")))
+        return self.transform(np.uint8(self.data["image"][index_to_load].astype('float32')))
 
 
 class PositionEmbed(nn.Module):
@@ -152,7 +159,7 @@ class PositionEmbed(nn.Module):
         super(PositionEmbed, self).__init__()
         self.embedding = nn.Linear(4, hidden_size)
 
-    def forward(self, inputs: torch.Tensor, grid: torch.Tensor) -> torch.Tensor:
+    def forward(self, inputs: torch.tensor, grid: torch.tensor) -> torch.tensor:
         return inputs + self.embedding(grid)
 
 
@@ -166,7 +173,7 @@ def build_grid(resolution: Tuple) -> torch.Tensor:
     ranges = [torch.linspace(0., 1., steps=res) for res in resolution]
     grid = torch.stack(torch.meshgrid(*ranges, indexing="ij"), dim=-1)
     grid = grid.unsqueeze(0)  # Add batch dimension
-    return torch.cat(tensors=[grid, 1.0 - grid], dim=-1)
+    return torch.cat([grid, 1.0 - grid], dim=-1)
 
 
 class SlotAttention(nn.Module):
@@ -198,7 +205,7 @@ class SlotAttention(nn.Module):
             self.norm_mlp, self.fc1, nn.ReLU(), self.fc2
         )
 
-    def forward(self, inputs: torch.Tensor) -> torch.Tensor:
+    def forward(self, inputs: torch.tensor) -> torch.tensor:
         batch_size, num_inputs, _ = inputs.shape
 
         mu = self.slots_mu.expand(batch_size, self.num_slots, -1)
@@ -319,7 +326,7 @@ class SlotAttentionModel(nn.Module):
             slot_size=self.slot_size,
             num_slots=self.num_slots,
             iters=self.num_iters,
-            hidden_size=self.slot_mlp_size
+            hidden_size=self.slot_mlp_size,
         )
 
         self.decoder = Decoder(self.hdim, self.slot_size)
@@ -358,7 +365,7 @@ class LitSlotAttention(L.LightningModule):
         self.example_input_array = torch.Tensor(64, 3, 35, 35)
         self.save_hyperparameters()
         # self.grid = build_grid(resolution)
-        self.register_buffer(name="grid", tensor=build_grid(resolution))
+        self.register_buffer("grid", build_grid(resolution))
         self.model = SlotAttentionModel(
             resolution=resolution,
             num_slots=num_slots,
@@ -395,23 +402,21 @@ class LitSlotAttention(L.LightningModule):
             out = torch.cat([
                 batch.unsqueeze(1),
                 recon_combined.unsqueeze(1),
-                recon * masks + (1 - masks)
-            ], dim=1)
+                recon * masks + (1 - masks)],
+                dim=1)
 
             out = (out * 0.5 + 0.5).clamp(0, 1)
             batch_size, num_slots, C, H, W = recon.shape
             images = make_grid(
-                out.view(batch_size * out.shape[1], C, H, W ).cpu(),
-                normalize=False,
-                nrow=out.shape[1]
+                out.view(batch_size * out.shape[1], C, H, W ).cpu(), normalize=False, nrow=out.shape[1]
             )
             save_image(
                 images,
                 os.path.join("/Users/kirkswanson/PycharmProjects/SlotAttention", f"slots_at_{self.current_epoch}.jpg")
             )
             self.logger.experiment.add_image(
-                tag="slot_viz",
                 img_tensor=images,
+                tag='slot_viz',
                 global_step=self.current_epoch
             )
 
