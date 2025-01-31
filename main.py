@@ -235,7 +235,7 @@ class SlotAttention(nn.Module):
             slots = slots.reshape(batch_size, -1, self.slot_size)
             slots = slots + self.slot_mlp(slots)
 
-            return slots
+        return slots
 
 
 class Encoder(nn.Module):
