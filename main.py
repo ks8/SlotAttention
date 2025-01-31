@@ -410,10 +410,7 @@ class LitSlotAttention(L.LightningModule):
             images = make_grid(
                 out.view(batch_size * out.shape[1], C, H, W ).cpu(), normalize=False, nrow=out.shape[1]
             )
-            save_image(
-                images,
-                os.path.join("/Users/kirkswanson/PycharmProjects/SlotAttention", f"slots_at_{self.current_epoch}.jpg")
-            )
+            save_image(images, f"slots_at_{self.current_epoch}.jpg")
             self.logger.experiment.add_image(
                 img_tensor=images,
                 tag='slot_viz',
