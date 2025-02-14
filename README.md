@@ -23,3 +23,11 @@ We only use h5py versions of this dataset that @pemami4911 created by modifying 
 of this and made it available for download [here](https://drive.google.com/file/d/1RNEdk4UI2pnGr_B3ZWqsBwBRolGRT2VJ/view?usp=sharing). 
 
 ## Training 
+Download the training data file, tetrominoes.h5, into the SlotAttention directory. Then, simply run:  
+
+```
+python main.py
+```
+
+Check out the ```main.py``` file for various other CLI options, many of which are enabled by Pytorch Lightning.  
+
