@@ -14,6 +14,8 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 from torchvision.utils import save_image, make_grid
 
+import multiprocessing as mp
+mp.set_start_method("fork")
 import numpy as np
 import h5py
 import torchvision.transforms as transforms
@@ -505,12 +507,12 @@ def main(hparams):
 
 if __name__ == "__main__":
     parser = ArgumentParser()
-    parser.add_argument("--accelerator", type=str, default="gpu")
+    parser.add_argument("--accelerator", type=str, default="gpu", choices=["gpu", "cpu", "mps"])
     parser.add_argument("--devices", type=int, default=1)
     parser.add_argument("--batch_size", type=int, default=64)
     parser.add_argument("--learning_rate", type=float, default=4e-4)
     parser.add_argument("--max_epochs", type=int, default=100)
-    parser.add_argument("--num_workers", type=int, default=63)
+    parser.add_argument("--num_workers", type=int, default=7)
     parser.add_argument("--data_h5_path", type=str, default="tetrominoes.h5")
     parser.add_argument("--resolution", type=tuple, default=(35, 35))
     parser.add_argument("--num_slots", type=int, default=4)

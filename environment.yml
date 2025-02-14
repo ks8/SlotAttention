@@ -11,3 +11,5 @@ dependencies:
   - pip:
     - lightning==2.5.0.post0
     - h5py==3.12.1
+    - tensorboard==2.18.0
+    - psutil==6.1.0
