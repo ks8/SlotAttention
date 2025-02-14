@@ -9,6 +9,11 @@ This repository implements Slot Attention, as described in the paper [Object-Cen
 - [Training](#training)
 
 ## Installation
+SlotAttention can be installed from source:
+1. ```git clone https://github.com/ks8/SlotAttention.git```
+2. ```cd SlotAttention```
+3. ```conda env create -f environment.yml```
+4. ```conda activate SlotAttention```
 
 ## Training Data
 We use a portion of the Tetrominoes dataset for training, which we borrowed 
